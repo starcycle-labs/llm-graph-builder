@@ -1,1 +1,8 @@
 node_modules
+# project specific
+
+.deploy/*
+.ignore/*
+example.env
+frontend.env
+
