@@ -1,0 +1,43 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: "knowledge-graph-frontend"
+  labels:
+    cloud.googleapis.com/location: "us-central1"
+  annotations:
+    run.googleapis.com/launch-stage: BETA
+    run.googleapis.com/description: "Development service for React app and OAuth2 proxy with Nginx"
+spec:
+  template:
+    metadata:
+      annotations:
+        run.googleapis.com/container-dependencies: "{graph-frontend: [oauth-proxy-graph]}"
+    spec:
+      containers:
+        - image: us-central1-docker.pkg.dev/starcycle-dev-424300/knowledge-graph-frontend/knowledge-graph-oauth-proxy:latest
+          name: oauth-proxy-graph
+          ports:
+            - name: http1
+              containerPort: 8080
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+          startupProbe:
+            timeoutSeconds: 240
+            periodSeconds: 240
+            failureThreshold: 1
+            tcpSocket:
+              port: 8080
+        - image: us-central1-docker.pkg.dev/starcycle-dev-424300/knowledge-graph-frontend/knowledge-graph-frontend:latest
+          name: graph-frontend
+          resources:
+            limits:
+              cpu: "1000m"
+              memory: "512Mi"
+          startupProbe:
+            timeoutSeconds: 240
+            periodSeconds: 240
+            failureThreshold: 1
+            tcpSocket:
+              port: 8888
