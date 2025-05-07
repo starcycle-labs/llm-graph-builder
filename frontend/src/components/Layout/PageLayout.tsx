@@ -22,10 +22,10 @@ import { createDefaultFormData } from '../../API/Index';
 import LoadExistingSchemaDialog from '../Popups/GraphEnhancementDialog/EnitityExtraction/LoadExistingSchema';
 import PredefinedSchemaDialog from '../Popups/GraphEnhancementDialog/EnitityExtraction/PredefinedSchemaDialog';
 
-const GCSModal = lazy(() => import('../DataSources/GCS/GCSModal'));
 const S3Modal = lazy(() => import('../DataSources/AWS/S3Modal'));
 const GenericModal = lazy(() => import('../WebSources/GenericSourceModal'));
 const ConnectionModal = lazy(() => import('../Popups/ConnectionModal/ConnectionModal'));
+const GCSModal = APP_SOURCES.includes('gcs') ? lazy(() => import('../DataSources/GCS/GCSModal')) : () => null;
 import { SKIP_AUTH } from '../../utils/Constants';
 const spotlightsforunauthenticated = [
   {
@@ -534,9 +534,11 @@ const PageLayout: React.FC = () => {
         </div>
       ) : (
         <>
-          <Suspense fallback={<FallBackDialog />}>
-            <GCSModal openGCSModal={toggleGCSModal} open={showGCSModal} hideModal={toggleGCSModal} />
-          </Suspense>
+          {APP_SOURCES.includes('gcs') && (
+            <Suspense fallback={<FallBackDialog />}>
+              <GCSModal openGCSModal={toggleGCSModal} open={showGCSModal} hideModal={toggleGCSModal} />
+            </Suspense>
+          )}
           <Suspense fallback={<FallBackDialog />}>
             <S3Modal hideModal={toggleS3Modal} open={shows3Modal} />
           </Suspense>
