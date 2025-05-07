@@ -25,6 +25,13 @@ COPY requirements.txt /code/
 # Install Python dependencies with no cache and in a single layer
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Create HuggingFace cache directory and set permissions
+RUN mkdir -p /root/.cache/huggingface && \
+    chmod -R 777 /root/.cache/huggingface
+
+# Pre-download the sentence transformer model
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
+
 # Create necessary directories
 RUN mkdir -p /code/merged_files /code/chunks
 
@@ -33,6 +40,9 @@ FROM base AS app
 
 # Copy application code
 COPY . /code
+
+# Copy the HuggingFace cache from the base stage
+COPY --from=base /root/.cache/huggingface /root/.cache/huggingface
 
 # Set environment variables
 ENV PORT=8080
