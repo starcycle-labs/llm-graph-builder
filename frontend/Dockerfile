@@ -1,7 +1,8 @@
 # Step 1: Build the React application
 FROM node:20 AS build
 
-ARG VITE_BACKEND_API_URL="http://localhost:8000"
+# ARG VITE_BACKEND_API_URL="http://localhost:8000"
+ARG VITE_BACKEND_API_URL="https://knowledge-graph-backend-43224685666.us-central1.run.app"
 ARG VITE_REACT_APP_SOURCES=""
 ARG VITE_LLM_MODELS=""
 ARG VITE_GOOGLE_CLIENT_ID=""
@@ -49,7 +50,7 @@ FROM nginx:alpine
 ARG DEPLOYMENT_ENV="local"
 ENV DEPLOYMENT_ENV=$DEPLOYMENT_ENV
 COPY --from=build /app/dist /usr/share/nginx/html
-COPY /nginx/nginx.${DEPLOYMENT_ENV}.conf /etc/nginx/templates/nginx.conf.template
+COPY nginx/nginx.local.conf /etc/nginx/templates/nginx.conf.template
 
-EXPOSE 8080
+EXPOSE 8888
 CMD ["nginx", "-g", "daemon off;"]
