@@ -939,27 +939,24 @@ const Content: React.FC<ContentProps> = ({
             >
               Graph Enhancement
             </ButtonWithToolTip>
-            {!connectionStatus ? (
-              <SpotlightTarget
-                id='connectbutton'
-                hasPulse={true}
-                indicatorVariant='border'
-                className='n-bg-palette-primary-bg-strong hover:n-bg-palette-primary-hover-strong'
+            <SpotlightTarget
+              id='connectbutton'
+              hasPulse={true}
+              indicatorVariant='border'
+              className='n-bg-palette-primary-bg-strong hover:n-bg-palette-primary-hover-strong'
+            >
+              <Button
+                size={isTablet ? 'small' : 'medium'}
+                className='mr-2!'
+                onClick={() => setOpenConnection((prev) => ({ ...prev, openPopUp: true }))}
               >
-                <Button
-                  size={isTablet ? 'small' : 'medium'}
-                  className='mr-2!'
-                  onClick={() => setOpenConnection((prev) => ({ ...prev, openPopUp: true }))}
-                >
-                  {buttonCaptions.connectToNeo4j}
-                </Button>
-              </SpotlightTarget>
-            ) : (
-              showDisconnectButton && (
-                <Button size={isTablet ? 'small' : 'medium'} className='mr-2.5' onClick={disconnect}>
-                  {buttonCaptions.disconnect}
-                </Button>
-              )
+                {buttonCaptions.connectToNeo4j}
+              </Button>
+            </SpotlightTarget>
+            {showDisconnectButton && (
+              <Button size={isTablet ? 'small' : 'medium'} className='mr-2.5' onClick={disconnect}>
+                {buttonCaptions.disconnect}
+              </Button>
             )}
           </div>
         </Flex>

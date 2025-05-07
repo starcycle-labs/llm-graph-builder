@@ -36,6 +36,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import HTMLResponse, RedirectResponse,JSONResponse
 from starlette.requests import Request
 import secrets
+from neo4j import GraphDatabase
 
 logger = CustomLogger()
 CHUNK_DIR = os.path.join(os.path.dirname(__file__), "chunks")
@@ -1095,6 +1096,56 @@ async def get_schema_visualization(uri=Form(None), userName=Form(None), password
         logging.info(message)
         logging.exception(f'Exception:{error_message}')
         return create_api_response("Failed", message=message, error=error_message)
+    finally:
+        gc.collect()
+
+@app.post("/list_databases")
+async def list_databases(uri=Form(None), userName=Form(None), password=Form(None), email=Form(None)):
+    try:
+        start = time.time()
+        driver = None
+        try:
+            # Create driver without specifying database to list all databases
+            driver = GraphDatabase.driver(uri, auth=(userName, password))
+            # Execute SHOW DATABASES command
+            result = driver.execute_query("SHOW DATABASES")
+            databases = [record["name"] for record in result[0]]
+            
+            end = time.time()
+            elapsed_time = end - start
+            
+            json_obj = {
+                'api_name': 'list_databases',
+                'db_url': uri,
+                'userName': userName,
+                'logging_time': formatted_time(datetime.now(timezone.utc)),
+                'elapsed_api_time': f'{elapsed_time:.2f}',
+                'email': email
+            }
+            logger.log_struct(json_obj, "INFO")
+            
+            return create_api_response(
+                'Success',
+                data={'databases': databases},
+                message=f"Successfully retrieved {len(databases)} databases"
+            )
+        finally:
+            if driver:
+                driver.close()
+    except Exception as e:
+        error_message = str(e)
+        message = "Failed to list databases"
+        json_obj = {
+            'error_message': error_message,
+            'status': 'Failed',
+            'db_url': uri,
+            'userName': userName,
+            'logging_time': formatted_time(datetime.now(timezone.utc)),
+            'email': email
+        }
+        logger.log_struct(json_obj, "ERROR")
+        logging.exception(f'Exception while listing databases: {e}')
+        return create_api_response('Failed', message=message, error=error_message)
     finally:
         gc.collect()
 

@@ -11,6 +11,7 @@ import { useAuth0 } from '@auth0/auth0-react';
 import { createDefaultFormData } from '../../../API/Index';
 import { getNodeLabelsAndRelTypesFromText } from '../../../services/SchemaFromTextAPI';
 import { useFileContext } from '../../../context/UsersFiles';
+import { listDatabases } from '../../../services/ListDatabases';
 
 export default function ConnectionModal({
   open,
@@ -66,6 +67,8 @@ export default function ConnectionModal({
   const databaseRef = useRef<HTMLInputElement>(null);
   const userNameRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
+  const [databases, setDatabases] = useState<string[]>([]);
+  const [isLoadingDatabases, setIsLoadingDatabases] = useState(false);
   useEffect(() => {
     if (searchParams.has('connectURL')) {
       const url = searchParams.get('connectURL');
@@ -359,6 +362,26 @@ export default function ConnectionModal({
 
   const isDisabled = useMemo(() => !username || !URI || !password, [username, URI, password]);
 
+  useEffect(() => {
+    const fetchDatabases = async () => {
+      if (URI && username && password) {
+        setIsLoadingDatabases(true);
+        try {
+          const response = await listDatabases();
+          if (response.data.status === 'Success') {
+            setDatabases(response.data.data.databases);
+          }
+        } catch (error) {
+          console.error('Error fetching databases:', error);
+        } finally {
+          setIsLoadingDatabases(false);
+        }
+      }
+    };
+
+    fetchDatabases();
+  }, [URI, username, password]);
+
   return (
     <>
       <Dialog
@@ -454,21 +477,25 @@ export default function ConnectionModal({
             </div>
           </div>
           <form>
-            <TextInput
+            <Select
               ref={databaseRef}
+              label='Database'
+              type='select'
+              size='medium'
+              isDisabled={isLoadingDatabases}
+              selectProps={{
+                onChange: (newValue) => newValue && setDatabase(newValue.value),
+                options: databases.map((db) => ({ label: db, value: db })),
+                value: { label: database, value: database },
+                placeholder: 'Select database',
+              }}
+              className='w-full'
+              isFluid
               htmlAttributes={{
                 id: 'database',
                 onKeyDown: handleKeyPress(user?.email ?? ''),
                 'aria-label': 'Database',
-                placeholder: 'neo4j',
               }}
-              value={database}
-              isDisabled={false}
-              label='Database'
-              isFluid={true}
-              isRequired={true}
-              onChange={(e) => setDatabase(e.target.value)}
-              className='w-full'
             />
             <div className='n-flex n-flex-row n-flex-wrap mb-2'>
               <div className='w-[48.5%] mr-1.5 inline-block'>
