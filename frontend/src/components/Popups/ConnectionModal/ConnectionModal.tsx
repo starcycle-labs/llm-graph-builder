@@ -12,6 +12,7 @@ import { createDefaultFormData } from '../../../API/Index';
 import { getNodeLabelsAndRelTypesFromText } from '../../../services/SchemaFromTextAPI';
 import { useFileContext } from '../../../context/UsersFiles';
 import { listDatabases } from '../../../services/ListDatabases';
+import Loader from '../../../utils/Loader';
 
 export default function ConnectionModal({
   open,
@@ -68,7 +69,8 @@ export default function ConnectionModal({
   const userNameRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
   const [databases, setDatabases] = useState<string[]>([]);
-  const [isLoadingDatabases, setIsLoadingDatabases] = useState(false);
+  const [loadingDatabases, setLoadingDatabases] = useState(false);
+
   useEffect(() => {
     if (searchParams.has('connectURL')) {
       const url = searchParams.get('connectURL');
@@ -79,6 +81,13 @@ export default function ConnectionModal({
     return () => {
       setUserDbVectorIndex(undefined);
     };
+  }, [open]);
+
+  useEffect(() => {
+    if (open) {
+      console.log('Modal opened, fetching databases...');
+      fetchDatabases();
+    }
   }, [open]);
 
   const recreateVectorIndex = useCallback(
@@ -362,25 +371,28 @@ export default function ConnectionModal({
 
   const isDisabled = useMemo(() => !username || !URI || !password, [username, URI, password]);
 
-  useEffect(() => {
-    const fetchDatabases = async () => {
-      if (URI && username && password) {
-        setIsLoadingDatabases(true);
-        try {
-          const response = await listDatabases();
-          if (response.data.status === 'Success') {
-            setDatabases(response.data.data.databases);
-          }
-        } catch (error) {
-          console.error('Error fetching databases:', error);
-        } finally {
-          setIsLoadingDatabases(false);
-        }
-      }
-    };
+  const fetchDatabases = async () => {
+    console.log('Fetching databases...');
+    setLoadingDatabases(true);
+    try {
+      const connectionUri = `${protocol}://${URI}`;
+      console.log('Fetching databases with URI:', connectionUri);
+      const response = await listDatabases(connectionUri, username, password);
+      console.log('Database list response:', response);
 
-    fetchDatabases();
-  }, [URI, username, password]);
+      if (response?.data?.status === 'Success' && response.data.data.databases) {
+        console.log('Setting databases:', response.data.data.databases);
+        setDatabases(response.data.data.databases);
+      } else {
+        throw new Error(response?.data?.error || 'Failed to fetch databases');
+      }
+    } catch (error) {
+      console.error('Error fetching databases:', error);
+      setMessage({ type: 'danger', content: error instanceof Error ? error.message : 'Failed to fetch databases' });
+    } finally {
+      setLoadingDatabases(false);
+    }
+  };
 
   return (
     <>
@@ -405,13 +417,7 @@ export default function ConnectionModal({
           </Typography>
           {connectionMessage?.type !== 'unknown' &&
             (vectorIndexLoading ? (
-              <Banner
-                name='Connection Modal'
-                isCloseable={false}
-                type={connectionMessage?.type}
-                description={connectionMessage?.content}
-                usage='inline'
-              ></Banner>
+              <Loader title='Loading...' />
             ) : (
               <Banner
                 name='Connection Modal'
@@ -482,7 +488,7 @@ export default function ConnectionModal({
               label='Database'
               type='select'
               size='medium'
-              isDisabled={isLoadingDatabases}
+              isDisabled={loadingDatabases}
               selectProps={{
                 onChange: (newValue) => newValue && setDatabase(newValue.value),
                 options: databases.map((db) => ({ label: db, value: db })),

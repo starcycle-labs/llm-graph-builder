@@ -1103,13 +1103,11 @@ async def get_schema_visualization(uri=Form(None), userName=Form(None), password
 async def list_databases(uri=Form(None), userName=Form(None), password=Form(None), email=Form(None)):
     try:
         start = time.time()
-        driver = None
+        graph = create_graph_database_connection(uri, userName, password, 'neo4j')
         try:
-            # Create driver without specifying database to list all databases
-            driver = GraphDatabase.driver(uri, auth=(userName, password))
             # Execute SHOW DATABASES command
-            result = driver.execute_query("SHOW DATABASES")
-            databases = [record["name"] for record in result[0]]
+            result = graph.query("SHOW DATABASES")
+            databases = [record["name"] for record in result]
             
             end = time.time()
             elapsed_time = end - start
@@ -1130,8 +1128,7 @@ async def list_databases(uri=Form(None), userName=Form(None), password=Form(None
                 message=f"Successfully retrieved {len(databases)} databases"
             )
         finally:
-            if driver:
-                driver.close()
+            close_db_connection(graph, 'list_databases')
     except Exception as e:
         error_message = str(e)
         message = "Failed to list databases"
