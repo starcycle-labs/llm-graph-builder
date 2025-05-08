@@ -137,10 +137,14 @@ class graphDBdataAccess:
         Returns a list of sources that are in the database by querying the graph and
         sorting the list by the last updated date. 
         """
-        logging.info("Get existing files list from graph")
+        logging.info(f"Getting files list from database: {self.graph._database}")
         query = "MATCH(d:Document) WHERE d.fileName IS NOT NULL RETURN d ORDER BY d.updatedAt DESC"
+        logging.info(f"Executing query: {query}")
         result = self.graph.query(query)
         list_of_json_objects = [entry['d'] for entry in result]
+        logging.info(f"Found {len(list_of_json_objects)} files in database {self.graph._database}")
+        for file in list_of_json_objects:
+            logging.info(f"File: {file.get('fileName', 'N/A')}, Source: {file.get('fileSource', 'N/A')}, Status: {file.get('status', 'N/A')}")
         return list_of_json_objects
         
     def update_KNN_graph(self):
