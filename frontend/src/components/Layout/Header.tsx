@@ -25,7 +25,6 @@ import { downloadClickHandler, getIsLoading } from '../../utils/Utils';
 import Profile from '../User/Profile';
 import { useAuth0 } from '@auth0/auth0-react';
 
-
 const Header: React.FC<HeaderProp> = ({ chatOnly, deleteOnClick, setOpenConnection, showBackButton }) => {
   const { colorMode, toggleColorMode } = useContext(ThemeWrapperContext);
   const navigate = useNavigate();
@@ -173,19 +172,17 @@ const Header: React.FC<HeaderProp> = ({ chatOnly, deleteOnClick, setOpenConnecti
                 className='inline-flex gap-x-1'
                 style={{ display: 'flex', flexGrow: 0, alignItems: 'center', gap: '4px' }}
               >
-                {!connectionStatus && (
-                  <Button
-                    size={'medium'}
-                    className={`${chatOnly ? '' : 'mr-2.5'}`}
-                    onClick={() => {
-                      if (setOpenConnection) {
-                        setOpenConnection((prev) => ({ ...prev, openPopUp: true }));
-                      }
-                    }}
-                  >
-                    {buttonCaptions.connectToNeo4j}
-                  </Button>
-                )}
+                <Button
+                  size={'medium'}
+                  className={`${chatOnly ? '' : 'mr-2.5'}`}
+                  onClick={() => {
+                    if (setOpenConnection) {
+                      setOpenConnection((prev) => ({ ...prev, openPopUp: true }));
+                    }
+                  }}
+                >
+                  {buttonCaptions.connectToNeo4j}
+                </Button>
                 {showBackButton && (
                   <IconButtonWithToolTip
                     onClick={onBackButtonClick}
