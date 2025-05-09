@@ -285,9 +285,12 @@ const PageLayout: React.FC = () => {
             handleDisconnectButtonState(true);
           }
         } else {
-          setErrorMessage(backendApiResponse?.data?.error);
+          const errorMsg =
+            backendApiResponse?.data?.error ||
+            'Failed to establish connection to Neo4j database. Please check your connection settings and SSL configuration.';
+          setErrorMessage(errorMsg);
           handleDisconnectButtonState(true);
-          console.log('from else cndition error is there');
+          console.error('Connection error:', errorMsg);
         }
       } catch (error) {
         if (error instanceof Error) {
