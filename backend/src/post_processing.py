@@ -90,7 +90,8 @@ def create_fulltext(driver,type):
                 logging.info(f"Dropped existing index (if any) in {time.time() - start_step:.2f} seconds.")
             except Exception as e:
                 logging.error(f"Failed to drop index: {e}")
-                return
+                raise
+
             try:
                 if type == "entities":
                     start_step = time.time()
@@ -108,7 +109,8 @@ def create_fulltext(driver,type):
                         return
             except Exception as e:
                 logging.error(f"Failed to fetch labels: {e}")
-                return
+                raise
+
             try:
                 start_step = time.time()
                 if type == "entities":
@@ -122,9 +124,10 @@ def create_fulltext(driver,type):
                 logging.info(f"Created full-text index in {time.time() - start_step:.2f} seconds.")
             except Exception as e:
                 logging.error(f"Failed to create full-text index: {e}")
-                return
+                raise
     except Exception as e:
         logging.error(f"An error occurred during the session: {e}")
+        raise
     finally:
         logging.info(f"Process completed in {time.time() - start_time:.2f} seconds.")
 
