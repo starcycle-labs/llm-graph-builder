@@ -17,9 +17,19 @@ from src.shared.constants import ADDITIONAL_INSTRUCTIONS
 import re
 import json
 
+def replace_model_if_needed(model: str) -> str:
+    """Replace model name if it's set to use a default model."""
+    if model == "diffbot":
+        default_model = os.getenv('DEFAULT_DIFFBOT_CHAT_MODEL')
+        if default_model:
+            logging.info(f"Replacing 'diffbot' model with default model: {default_model}")
+            return default_model
+    return model
+
 def get_llm(model: str):
     """Retrieve the specified language model based on the model name."""
     model = model.lower().strip()
+    model = replace_model_if_needed(model)
     env_key = f"LLM_MODEL_CONFIG_{model}"
     env_value = os.environ.get(env_key)
 
