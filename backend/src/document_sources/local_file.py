@@ -63,7 +63,12 @@ def load_document_content(file_path):
             return loader,encoding_flag
     else:
         loader = UnstructuredFileLoader(file_path, mode="elements",autodetect_encoding=True)
-        return loader,encoding_flag
+        # Check for UNK type before returning
+        test_load = loader.load()
+        if any(page.metadata.get('filetype') == 'UNK' for page in test_load):
+            logging.warning(f"Skipping file with unknown type: {file_path}")
+            raise Exception(f"File type unknown for: {file_path}")
+        return loader, encoding_flag
 
 def get_documents_from_file_by_path(file_path,file_name):
     file_path = Path(file_path)
