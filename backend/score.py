@@ -37,10 +37,26 @@ from starlette.responses import HTMLResponse, RedirectResponse,JSONResponse
 from starlette.requests import Request
 import secrets
 from neo4j import GraphDatabase
+from dotenv import load_dotenv
 
 logger = CustomLogger()
 CHUNK_DIR = os.path.join(os.path.dirname(__file__), "chunks")
 MERGED_DIR = os.path.join(os.path.dirname(__file__), "merged_files")
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+
+# Load environment variables
+load_dotenv()
+
+# Default chunking parameters from environment
+DEFAULT_CHUNK_SIZE = int(os.getenv('GRAPH_CHUNK_SIZE', 200))
+DEFAULT_CHUNK_OVERLAP = int(os.getenv('GRAPH_CHUNK_OVERLAP', 20))
+DEFAULT_CHUNK_LIMIT = int(os.getenv('GRAPH_CHUNK_LIMIT', 50))
 
 def sanitize_filename(filename):
    """
@@ -212,9 +228,9 @@ async def extract_knowledge_graph_from_file(
     file_name=Form(None),
     allowedNodes=Form(None),
     allowedRelationship=Form(None),
-    token_chunk_size: Optional[int] = Form(None),
-    chunk_overlap: Optional[int] = Form(None),
-    chunks_to_combine: Optional[int] = Form(None),
+    token_chunk_size: Optional[int] = Form(DEFAULT_CHUNK_SIZE),
+    chunk_overlap: Optional[int] = Form(DEFAULT_CHUNK_OVERLAP),
+    chunks_to_combine: Optional[int] = Form(DEFAULT_CHUNK_LIMIT),
     language=Form(None),
     access_token=Form(None),
     retry_condition=Form(None),
@@ -1142,6 +1158,129 @@ async def list_databases(uri=Form(None), userName=Form(None), password=Form(None
         }
         logger.log_struct(json_obj, "ERROR")
         logging.exception(f'Exception while listing databases: {e}')
+        return create_api_response('Failed', message=message, error=error_message)
+    finally:
+        gc.collect()
+
+@app.post("/create_database")
+async def create_database(
+    uri=Form(None),
+    userName=Form(None),
+    password=Form(None),
+    database=Form(None),
+    email=Form(None)
+):
+    try:
+        start = time.time()
+        graph = create_graph_database_connection(uri, userName, password, 'system')
+        try:
+            # Check if database already exists
+            result = graph.query("SHOW DATABASES")
+            existing_databases = [record["name"] for record in result]
+            
+            if database in existing_databases:
+                return create_api_response(
+                    'Success',
+                    message=f"Database {database} already exists"
+                )
+            
+            # Create the database
+            query = f"CREATE DATABASE {database}"
+            graph.query(query)
+            
+            end = time.time()
+            elapsed_time = end - start
+            
+            json_obj = {
+                'api_name': 'create_database',
+                'db_url': uri,
+                'userName': userName,
+                'logging_time': formatted_time(datetime.now(timezone.utc)),
+                'elapsed_api_time': f'{elapsed_time:.2f}',
+                'email': email
+            }
+            logger.log_struct(json_obj, "INFO")
+            
+            return create_api_response(
+                'Success',
+                message=f"Successfully created database {database}"
+            )
+        finally:
+            close_db_connection(graph, 'create_database')
+    except Exception as e:
+        error_message = str(e)
+        message = f"Failed to create database {database}"
+        json_obj = {
+            'error_message': error_message,
+            'status': 'Failed',
+            'db_url': uri,
+            'userName': userName,
+            'logging_time': formatted_time(datetime.now(timezone.utc)),
+            'email': email
+        }
+        logger.log_struct(json_obj, "ERROR")
+        logging.exception(f'Exception while creating database: {e}')
+        return create_api_response('Failed', message=message, error=error_message)
+
+
+@app.post("/delete_database")
+async def delete_database(
+    uri=Form(None),
+    userName=Form(None),
+    password=Form(None),
+    database=Form(None),
+    email=Form(None)
+):
+    try:
+        start = time.time()
+        graph = create_graph_database_connection(uri, userName, password, 'system')
+        try:
+            # Check if database exists
+            result = graph.query("SHOW DATABASES")
+            existing_databases = [record["name"] for record in result]
+            
+            if database not in existing_databases:
+                return create_api_response(
+                    'Success',
+                    message=f"Database {database} does not exist"
+                )
+            
+            # Drop the database
+            query = f"DROP DATABASE {database}"
+            graph.query(query)
+            
+            end = time.time()
+            elapsed_time = end - start
+            
+            json_obj = {
+                'api_name': 'delete_database',
+                'db_url': uri,
+                'userName': userName,
+                'logging_time': formatted_time(datetime.now(timezone.utc)),
+                'elapsed_api_time': f'{elapsed_time:.2f}',
+                'email': email
+            }
+            logger.log_struct(json_obj, "INFO")
+            
+            return create_api_response(
+                'Success',
+                message=f"Successfully deleted database {database}"
+            )
+        finally:
+            close_db_connection(graph, 'delete_database')
+    except Exception as e:
+        error_message = str(e)
+        message = f"Failed to delete database {database}"
+        json_obj = {
+            'error_message': error_message,
+            'status': 'Failed',
+            'db_url': uri,
+            'userName': userName,
+            'logging_time': formatted_time(datetime.now(timezone.utc)),
+            'email': email
+        }
+        logger.log_struct(json_obj, "ERROR")
+        logging.exception(f'Exception while deleting database: {e}')
         return create_api_response('Failed', message=message, error=error_message)
     finally:
         gc.collect()
