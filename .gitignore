@@ -26,6 +26,12 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/*.pyw
+**/*.pyz
+**/*.pywz
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -213,3 +219,6 @@ backend.env
 /backend/models
 */models/*
 */models
+
+.logs/*
+**/.logs/*
