@@ -197,6 +197,19 @@ def format_documents(documents, model,chat_mode_settings):
         try:
             source = doc.metadata.get('source', "unknown")
             sources.add(source)
+            
+            # Extract potential entity information from filename
+            filename_parts = source.replace('.pdf', '').replace('_', ' ').split('-')
+            
+            formatted_doc = (
+                "Document start\n"
+                f"Source Filename: {source}\n"
+                f"Potential Entity Names from Filename: {', '.join(filename_parts)}\n"
+                "Document Content:\n"
+                f"{doc.page_content}\n"
+                "Document end\n"
+            )
+            
             if 'entities' in doc.metadata:
                 if chat_mode_settings["mode"] == CHAT_ENTITY_VECTOR_MODE:
                     entity_ids = [entry['entityids'] for entry in doc.metadata['entities'] if 'entityids' in entry]
@@ -212,12 +225,6 @@ def format_documents(documents, model,chat_mode_settings):
                 new_entries = [entry for entry in doc.metadata["communitydetails"] if entry['id'] not in existing_ids]
                 global_communities.extend(new_entries)
 
-            formatted_doc = (
-                "Document start\n"
-                f"This Document belongs to the source {source}\n"
-                f"Content: {doc.page_content}\n"
-                "Document end\n"
-            )
             formatted_docs.append(formatted_doc)
         
         except Exception as e:
@@ -229,7 +236,9 @@ def process_documents(docs, question, messages, llm, model,chat_mode_settings):
     start_time = time.time()
     
     try:
+        logging.info("Starting document processing")
         formatted_docs, sources, entitydetails, communities = format_documents(docs, model,chat_mode_settings)
+        logging.info(f"Formatted {len(formatted_docs)} documents")
         
         rag_chain = get_rag_chain(llm=llm)
         
@@ -262,7 +271,8 @@ def process_documents(docs, question, messages, llm, model,chat_mode_settings):
         
         predict_time = time.time() - start_time
         logging.info(f"Final response predicted in {predict_time:.2f} seconds")
-
+        logging.info(f"Generated response with {total_tokens} tokens")
+        logging.info(f"Response content: {content[:200]}...")
     except Exception as e:
         logging.error(f"Error processing documents: {e}")
         raise
@@ -270,25 +280,48 @@ def process_documents(docs, question, messages, llm, model,chat_mode_settings):
     return content, result, total_tokens, formatted_docs
 
 def retrieve_documents(doc_retriever, messages):
-
     start_time = time.time()
     try:
         handler = CustomCallback()
-        docs = doc_retriever.invoke({"messages": messages},{"callbacks":[handler]})
+        logging.info("Starting document retrieval")
+        logging.info(f"Retrieving documents for question: {messages[-1].content}")
+        logging.info(f"Total messages in conversation: {len(messages)}")
+        
+        # Log conversation history for context
+        for i, msg in enumerate(messages[:-1], 1):
+            logging.info(f"Previous message {i}: {msg.content[:100]}...")
+        
+        docs = doc_retriever.invoke({"messages": messages}, {"callbacks":[handler]})
+        
+        if docs:
+            logging.info(f"Retrieved {len(docs)} documents")
+            for i, doc in enumerate(docs):
+                logging.info(f"Document {i+1}: source={doc.metadata.get('source', 'unknown')}, content_length={len(doc.page_content) if doc.page_content else 0}")
+                logging.info(f"Document {i+1} content: {doc.page_content[:200]}...")
+                logging.info(f"Document {i+1} metadata: {doc.metadata}")
+                if 'query_similarity_score' in doc.state:
+                    logging.info(f"Document {i+1} similarity score: {doc.state['query_similarity_score']}")
+        else:
+            logging.info("No documents retrieved")
+            logging.info("Checking retriever settings:")
+            if hasattr(doc_retriever, 'search_kwargs'):
+                logging.info(f"Retriever search settings: {doc_retriever.search_kwargs}")
+
         transformed_question = handler.transformed_question
         if transformed_question:
-            logging.info(f"Transformed question : {transformed_question}")
+            logging.info(f"Transformed question: {transformed_question}")
+        else:
+            logging.info("No question transformation occurred")
+            
         doc_retrieval_time = time.time() - start_time
         logging.info(f"Documents retrieved in {doc_retrieval_time:.2f} seconds")
-        
     except Exception as e:
         error_message = f"Error retrieving documents: {str(e)}"
-        logging.error(error_message)
+        logging.error(error_message, exc_info=True)
         docs = None
         transformed_question = None
-
     
-    return docs,transformed_question
+    return docs, transformed_question
 
 def create_document_retriever_chain(llm, retriever):
     try:
@@ -300,14 +333,18 @@ def create_document_retriever_chain(llm, retriever):
                 MessagesPlaceholder(variable_name="messages")
             ]
         )
+        logging.info(f"Using question transform template: {QUESTION_TRANSFORM_TEMPLATE}")
 
         output_parser = StrOutputParser()
 
         splitter = TokenTextSplitter(chunk_size=CHAT_DOC_SPLIT_SIZE, chunk_overlap=0)
+        logging.info(f"Created token splitter with chunk_size={CHAT_DOC_SPLIT_SIZE}")
+        
         embeddings_filter = EmbeddingsFilter(
             embeddings=EMBEDDING_FUNCTION,
             similarity_threshold=CHAT_EMBEDDING_FILTER_SCORE_THRESHOLD
         )
+        logging.info(f"Created embeddings filter with threshold={CHAT_EMBEDDING_FILTER_SCORE_THRESHOLD}")
 
         pipeline_compressor = DocumentCompressorPipeline(
             transformers=[splitter, embeddings_filter]
@@ -341,11 +378,19 @@ def initialize_neo4j_vector(graph, chat_mode_settings):
         embedding_node_property = chat_mode_settings.get("embedding_node_property")
         text_node_properties = chat_mode_settings.get("text_node_properties")
 
+        logging.info("Initializing Neo4j vector with query: %s", retrieval_query)
+        logging.info("Using indexes - vector: %s, keyword: %s", index_name, keyword_index if keyword_index else "None")
 
         if not retrieval_query or not index_name:
             raise ValueError("Required settings 'retrieval_query' or 'index_name' are missing.")
 
+        # Verify indexes exist before creating retriever
+        index_check = graph.query("SHOW INDEXES YIELD name, type, labelsOrTypes, properties WHERE name IN [$index_name, $keyword_index]", 
+                                {"index_name": index_name, "keyword_index": keyword_index})
+        logging.info("Found indexes: %s", index_check)
+
         if keyword_index:
+            logging.info("Creating hybrid search Neo4jVector with keyword index: %s", keyword_index)
             neo_db = Neo4jVector.from_existing_graph(
                 embedding=EMBEDDING_FUNCTION,
                 index_name=index_name,
@@ -359,6 +404,7 @@ def initialize_neo4j_vector(graph, chat_mode_settings):
             )
             logging.info(f"Successfully retrieved Neo4jVector Fulltext index '{index_name}' and keyword index '{keyword_index}'")
         else:
+            logging.info("Creating vector-only Neo4jVector without keyword index")
             neo_db = Neo4jVector.from_existing_graph(
                 embedding=EMBEDDING_FUNCTION,
                 index_name=index_name,
@@ -369,6 +415,17 @@ def initialize_neo4j_vector(graph, chat_mode_settings):
                 text_node_properties=text_node_properties
             )
             logging.info(f"Successfully retrieved Neo4jVector index '{index_name}'")
+
+        # Verify we can actually find documents
+        test_query = graph.query("""
+            MATCH (c:Chunk) 
+            WHERE c.embedding IS NOT NULL 
+            RETURN count(c) as chunk_count, 
+                   count(c.embedding) as embedding_count,
+                   count(c.text) as text_count
+        """)
+        logging.info("Database stats - chunks: %s", test_query)
+
     except Exception as e:
         index_name = chat_mode_settings.get("index_name")
         logging.error(f"Error retrieving Neo4jVector index {index_name} : {e}")
@@ -657,8 +714,12 @@ def QA_RAG(graph,model, question, document_names, session_id, mode, write_access
     logging.info(f"Chat Mode: {mode}")
 
     history = create_neo4j_chat_message_history(graph, session_id, write_access)
-    messages = history.messages
-
+    messages = []  # Start with empty messages for each new question
+    
+    # Only load history if it exists and has messages
+    if history and history.messages:
+        messages = history.messages
+    
     user_question = HumanMessage(content=question)
     messages.append(user_question)
 
@@ -668,7 +729,7 @@ def QA_RAG(graph,model, question, document_names, session_id, mode, write_access
         chat_mode_settings = get_chat_mode_settings(mode=mode)
         document_names= list(map(str.strip, json.loads(document_names)))
         if document_names and not chat_mode_settings["document_filter"]:
-            result =  {
+            result = {
                 "session_id": "",  
                 "message": "Please deselect all documents in the table before using this chat mode",
                 "info": {
