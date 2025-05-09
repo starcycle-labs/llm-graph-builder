@@ -13,5 +13,6 @@ COPY default.conf /etc/nginx/conf.d/default.conf
 # Copy OAuth2 Proxy configuration
 COPY oauth2-proxy.cfg /etc/oauth2-proxy.cfg
 
+
 # Start NGINX and OAuth2 Proxy
-CMD ["sh", "-c", "oauth2-proxy --config /etc/oauth2-proxy.cfg & nginx -g 'daemon off;'"]
+CMD ["sh", "-c", "oauth2-proxy --config /etc/oauth2-proxy.cfg & while ! nc -z localhost 4180; do sleep 0.1; done; nginx -g 'daemon off;'"]
