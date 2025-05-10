@@ -13,53 +13,67 @@ load_dotenv()
 PARENT_FOLDER_ID = "1o-90rlncgOVfE7LpZIVgSoKGsKWAcnG9"
 OUTPUT_CSV = f".logs/folder_list_{datetime.now().strftime('%Y-%m-%d')}.csv"  # Output CSV file with date
 
-# Set up base directory and paths
-BASE_DIR = Path.cwd()  # Use current working directory
-CREDENTIALS_FILE = os.getenv('GOOGLE_APPLICATION_CREDENTIALS_FILE')
-
-if CREDENTIALS_FILE:
-    key_file = BASE_DIR / "src" / "gdrive_sync" / CREDENTIALS_FILE
-    if key_file.exists():
-        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = str(key_file)
+def _create_credentials_dict():
+    """Create a credentials dictionary from environment variables"""
+    return {
+        "type": "service_account",
+        "project_id": os.getenv("GCP_PROJECT_ID"),
+        "private_key_id": os.getenv("GCP_PRIVATE_KEY_ID"),
+        "private_key": os.getenv("GCP_PRIVATE_KEY"),
+        "client_email": os.getenv("GCP_CLIENT_EMAIL"),
+        "client_id": os.getenv("GCP_CLIENT_ID"),
+        "auth_uri": os.getenv("GCP_AUTH_URI"),
+        "token_uri": os.getenv("GCP_TOKEN_URI"),
+        "auth_provider_x509_cert_url": os.getenv("GCP_AUTH_PROVIDER_CERT_URL"),
+        "client_x509_cert_url": os.getenv("GCP_CLIENT_CERT_URL"),
+        "universe_domain": os.getenv("GCP_UNIVERSE_DOMAIN")
+    }
 
 # Authenticate using the service account
 def authenticate_gdrive():
     try:
-        if not CREDENTIALS_FILE:
-            raise Exception("Google Drive credentials file not specified")
+        # Create credentials from environment variables
+        creds_dict = _create_credentials_dict()
         
-        key_file = BASE_DIR / "src" / "gdrive_sync" / CREDENTIALS_FILE
-        if not key_file.exists():
-            raise Exception(f"Credentials file not found at {key_file}")
-            
-        creds = service_account.Credentials.from_service_account_file(
-            str(key_file),
+        # Validate required credentials
+        required_fields = ["project_id", "private_key", "client_email"]
+        missing_fields = [field for field in required_fields if not creds_dict.get(field)]
+        
+        if missing_fields:
+            raise Exception(f"Missing required Google Drive credentials: {', '.join(missing_fields)}")
+        
+        # Create credentials object from dictionary
+        credentials = service_account.Credentials.from_service_account_info(
+            creds_dict,
             scopes=['https://www.googleapis.com/auth/drive.readonly']
         )
-        return build('drive', 'v3', credentials=creds)
+        return build('drive', 'v3', credentials=credentials)
     except Exception as e:
         raise Exception(f"Failed to authenticate: {str(e)}")
 
-# Get folder names, IDs, and owners from Google Drive
-def get_folders(service, folder_id=PARENT_FOLDER_ID):
-    """
-    Retrieve folder names, IDs, and owners from the specified folder
-    """
-    query = f"'{folder_id}' in parents and mimeType='application/vnd.google-apps.folder'"
-    results = service.files().list(
-        q=query,
-        fields="files(id, name, owners)"
-    ).execute()
-    return results.get('files', [])
+def get_folders(service):
+    """Get all folders in the parent folder"""
+    try:
+        results = service.files().list(
+            q=f"'{PARENT_FOLDER_ID}' in parents and mimeType='application/vnd.google-apps.folder'",
+            fields="files(id, name, owners)"
+        ).execute()
+        return results.get('files', [])
+    except Exception as e:
+        raise Exception(f"Failed to get folders: {str(e)}")
 
-# Write folder names, IDs, and owners to a CSV file
-def write_to_csv(folders, output_file=OUTPUT_CSV):
-    with open(output_file, mode='w', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow(['Folder Name', 'Folder ID', 'Owner'])  # Header
+def write_to_csv(folders):
+    """Write folder information to CSV file"""
+    os.makedirs(os.path.dirname(OUTPUT_CSV), exist_ok=True)
+    with open(OUTPUT_CSV, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        writer.writerow(['Folder Name', 'Folder ID', 'Owner Email'])
         for folder in folders:
-            owner_names = ', '.join([owner['emailAddress'] for owner in folder['owners']])
-            writer.writerow([folder['name'], folder['id'], owner_names])
+            writer.writerow([
+                folder.get('name', ''),
+                folder.get('id', ''),
+                folder.get('owners', [{}])[0].get('emailAddress', '')
+            ])
 
 if __name__ == "__main__":
     service = authenticate_gdrive()

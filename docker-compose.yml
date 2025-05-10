@@ -26,6 +26,17 @@ services:
       - NUMBER_OF_CHUNKS_TO_COMBINE=${NUMBER_OF_CHUNKS_TO_COMBINE-6}
       - ENTITY_EMBEDDING=${ENTITY_EMBEDDING-False}
       - GCS_FILE_CACHE=${GCS_FILE_CACHE-False}
+      # Google Cloud Service Account Credentials
+      - GCP_PROJECT_ID=${GCP_PROJECT_ID-}
+      - GCP_PRIVATE_KEY_ID=${GCP_PRIVATE_KEY_ID-}
+      - GCP_PRIVATE_KEY=${GCP_PRIVATE_KEY-}
+      - GCP_CLIENT_EMAIL=${GCP_CLIENT_EMAIL-}
+      - GCP_CLIENT_ID=${GCP_CLIENT_ID-}
+      - GCP_AUTH_URI=${GCP_AUTH_URI-https://accounts.google.com/o/oauth2/auth}
+      - GCP_TOKEN_URI=${GCP_TOKEN_URI-https://oauth2.googleapis.com/token}
+      - GCP_AUTH_PROVIDER_CERT_URL=${GCP_AUTH_PROVIDER_CERT_URL-https://www.googleapis.com/oauth2/v1/certs}
+      - GCP_CLIENT_CERT_URL=${GCP_CLIENT_CERT_URL-}
+      - GCP_UNIVERSE_DOMAIN=${GCP_UNIVERSE_DOMAIN-googleapis.com}
 #      - LLM_MODEL_CONFIG_anthropic_claude_35_sonnet=${LLM_MODEL_CONFIG_anthropic_claude_35_sonnet-}
 #      - LLM_MODEL_CONFIG_fireworks_llama_v3_70b=${LLM_MODEL_CONFIG_fireworks_llama_v3_70b-}
 #      - LLM_MODEL_CONFIG_azure_ai_gpt_4o=${LLM_MODEL_CONFIG_azure_ai_gpt_4o-}

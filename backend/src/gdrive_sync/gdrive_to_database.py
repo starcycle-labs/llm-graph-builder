@@ -3,6 +3,7 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 import logging
 import os
+import json
 from pathlib import Path
 from src.shared.llm_graph_builder_exception import LLMGraphBuilderException
 from dotenv import load_dotenv
@@ -14,25 +15,39 @@ load_dotenv()
 # Set up base directory and paths
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 MERGED_DIR = BASE_DIR / "merged_files"
-CREDENTIALS_FILE = os.getenv('GOOGLE_APPLICATION_CREDENTIALS_FILE')
 
-if CREDENTIALS_FILE:
-    key_file = BASE_DIR / "src" / "gdrive_sync" / CREDENTIALS_FILE
-    if key_file.exists():
-        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = str(key_file)
+def _create_credentials_dict():
+    """Create a credentials dictionary from environment variables"""
+    return {
+        "type": "service_account",
+        "project_id": os.getenv("GCP_PROJECT_ID"),
+        "private_key_id": os.getenv("GCP_PRIVATE_KEY_ID"),
+        "private_key": os.getenv("GCP_PRIVATE_KEY"),
+        "client_email": os.getenv("GCP_CLIENT_EMAIL"),
+        "client_id": os.getenv("GCP_CLIENT_ID"),
+        "auth_uri": os.getenv("GCP_AUTH_URI"),
+        "token_uri": os.getenv("GCP_TOKEN_URI"),
+        "auth_provider_x509_cert_url": os.getenv("GCP_AUTH_PROVIDER_CERT_URL"),
+        "client_x509_cert_url": os.getenv("GCP_CLIENT_CERT_URL"),
+        "universe_domain": os.getenv("GCP_UNIVERSE_DOMAIN")
+    }
 
 def _authenticate_gdrive():
     """Authenticate with Google Drive API"""
     try:
-        if not CREDENTIALS_FILE:
-            raise LLMGraphBuilderException("Google Drive credentials file not specified")
+        # Create credentials from environment variables
+        creds_dict = _create_credentials_dict()
         
-        key_file = BASE_DIR / "src" / "gdrive_sync" / CREDENTIALS_FILE
-        if not key_file.exists():
-            raise LLMGraphBuilderException(f"Credentials file not found at {key_file}")
+        # Validate required credentials
+        required_fields = ["project_id", "private_key", "client_email"]
+        missing_fields = [field for field in required_fields if not creds_dict.get(field)]
         
-        credentials = service_account.Credentials.from_service_account_file(
-            str(key_file),
+        if missing_fields:
+            raise LLMGraphBuilderException(f"Missing required Google Drive credentials: {', '.join(missing_fields)}")
+        
+        # Create credentials object from dictionary
+        credentials = service_account.Credentials.from_service_account_info(
+            creds_dict,
             scopes=['https://www.googleapis.com/auth/drive.readonly']
         )
         
