@@ -23,6 +23,7 @@ import Queue from '../utils/Queue';
 const FileContext = createContext<FileContextType | undefined>(undefined);
 
 const FileContextProvider: FC<FileContextProviderProps> = ({ children }) => {
+  console.log('FileContextProvider: Initializing context');
   const isProdEnv = process.env.VITE_ENV === 'PROD';
   const selectedNodeLabelstr = localStorage.getItem('selectedNodeLabels');
   const selectedNodeRelsstr = localStorage.getItem('selectedRelationshipLabels');
@@ -90,6 +91,16 @@ const FileContextProvider: FC<FileContextProviderProps> = ({ children }) => {
   const [userDefinedRels, setUserDefinedRels] = useState<OptionType[]>([]);
   const [preDefinedPattern, setPreDefinedPattern] = useState<string[]>([]);
   const [selectedPreDefOption, setSelectedPreDefOption] = useState<OptionType | null>(null);
+  const [scoreThreshold, setScoreThreshold] = useState<number>(0.2);
+  const [embeddingFilterThreshold, setEmbeddingFilterThreshold] = useState<number>(0.1);
+  const [searchK, setSearchK] = useState<number>(5);
+  const [effectiveSearchRatio, setEffectiveSearchRatio] = useState<number>(2);
+  console.log('FileContextProvider: State initialized', {
+    scoreThreshold,
+    embeddingFilterThreshold,
+    searchK,
+    effectiveSearchRatio,
+  });
 
   useEffect(() => {
     if (selectedNodeLabelstr != null) {
@@ -199,8 +210,23 @@ const FileContextProvider: FC<FileContextProviderProps> = ({ children }) => {
     setUserDefinedRels,
     userDefinedPattern,
     setUserDefinedPattern,
-    selectedPreDefOption, setSelectedPreDefOption
+    selectedPreDefOption,
+    setSelectedPreDefOption,
+    scoreThreshold,
+    setScoreThreshold,
+    embeddingFilterThreshold,
+    setEmbeddingFilterThreshold,
+    searchK,
+    setSearchK,
+    effectiveSearchRatio,
+    setEffectiveSearchRatio,
   };
+  console.log('FileContextProvider: Context value created', {
+    scoreThreshold: value.scoreThreshold,
+    embeddingFilterThreshold: value.embeddingFilterThreshold,
+    searchK: value.searchK,
+    effectiveSearchRatio: value.effectiveSearchRatio,
+  });
   return <FileContext.Provider value={value}>{children}</FileContext.Provider>;
 };
 const useFileContext = () => {

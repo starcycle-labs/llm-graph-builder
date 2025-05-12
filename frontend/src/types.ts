@@ -259,7 +259,7 @@ export type ChatbotProps = {
   isChatOnly?: boolean;
   isDeleteChatLoading: boolean;
 };
-export interface WikipediaModalTypes extends Omit<S3ModalProps, ''> { }
+export interface WikipediaModalTypes extends Omit<S3ModalProps, ''> {}
 
 export interface GraphViewModalProps {
   open: boolean;
@@ -400,15 +400,15 @@ export interface commonserverresponse {
   message?: string | orphanTotalNodes;
   file_name?: string;
   data?:
-  | OptionType
-  | OptionType[]
-  | string
-  | string[]
-  | uploadData
-  | orphanNodeProps[]
-  | dupNodes[]
-  | { pageitems: chunkdata[]; total_pages: number }
-  | { triplets: string[] };
+    | OptionType
+    | OptionType[]
+    | string
+    | string[]
+    | uploadData
+    | orphanNodeProps[]
+    | dupNodes[]
+    | { pageitems: chunkdata[]; total_pages: number }
+    | { triplets: string[] };
 }
 export interface dupNodeProps {
   id: string;
@@ -497,20 +497,20 @@ export interface chatInfoMessage extends Partial<Messages> {
   relationships: ExtendedRelationship[];
   chunks: Chunk[];
   metricDetails:
-  | {
-    [key: string]: number | string;
-  }
-  | undefined;
+    | {
+        [key: string]: number | string;
+      }
+    | undefined;
   metricError: string;
   infoEntities: Entity[];
   communities: Community[];
   infoLoading: boolean;
   metricsLoading: boolean;
   activeChatmodes:
-  | {
-    [key: string]: ResponseMode;
-  }
-  | undefined;
+    | {
+        [key: string]: ResponseMode;
+      }
+    | undefined;
   multiModelMetrics: multimodelmetric[];
   saveInfoEntitites: (entities: Entity[]) => void;
   saveNodes: (chatNodes: ExtendedNode[]) => void;
@@ -941,6 +941,14 @@ export interface FileContextType {
   setSchemaValRels: Dispatch<SetStateAction<OptionType[] | OptionType[]>>;
   schemaTextPattern: string[];
   setSchemaTextPattern: Dispatch<SetStateAction<string[]>>;
+  scoreThreshold: number;
+  setScoreThreshold: React.Dispatch<React.SetStateAction<number>>;
+  embeddingFilterThreshold: number;
+  setEmbeddingFilterThreshold: React.Dispatch<React.SetStateAction<number>>;
+  searchK: number;
+  setSearchK: React.Dispatch<React.SetStateAction<number>>;
+  effectiveSearchRatio: number;
+  setEffectiveSearchRatio: React.Dispatch<React.SetStateAction<number>>;
 }
 export declare type Side = 'top' | 'right' | 'bottom' | 'left';
 
@@ -1036,7 +1044,7 @@ export type TupleCreationProps = {
   onPatternChange: (
     source: OptionType | OptionType[] | null,
     type: OptionType | OptionType[] | null,
-    target: OptionType | OptionType[] |null
+    target: OptionType | OptionType[] | null
   ) => void;
   onAddPattern: () => void;
   selectedTupleOptions: readonly OptionType[];
@@ -1059,8 +1067,8 @@ export interface SchemaViewModalProps {
   nodeValues?: ExtendedNode[] | OptionType[];
   relationshipValues?: ExtendedRelationship[] | string[] | OptionType[];
   selectedRows?: CustomFile[] | undefined;
-  schemaLoading?:boolean;
-  view?: string
+  schemaLoading?: boolean;
+  view?: string;
 }
 
 export type UserDefinedGraphSchema = {

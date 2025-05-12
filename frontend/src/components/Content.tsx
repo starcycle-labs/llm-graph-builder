@@ -64,6 +64,7 @@ const Content: React.FC<ContentProps> = ({
   showDisconnectButton,
   connectionStatus,
 }) => {
+  console.log('Content: Component rendering');
   const { breakpoints } = tokens;
   const isTablet = useMediaQuery(`(min-width:${breakpoints.xs}) and (max-width: ${breakpoints.lg})`);
   const [openGraphView, setOpenGraphView] = useState<boolean>(false);
@@ -118,7 +119,21 @@ const Content: React.FC<ContentProps> = ({
     model,
     additionalInstructions,
     setAdditionalInstructions,
+    scoreThreshold,
+    setScoreThreshold,
+    embeddingFilterThreshold,
+    setEmbeddingFilterThreshold,
+    searchK,
+    setSearchK,
+    effectiveSearchRatio,
+    setEffectiveSearchRatio,
   } = useFileContext();
+  console.log('Content: Context values accessed', {
+    scoreThreshold,
+    embeddingFilterThreshold,
+    searchK,
+    effectiveSearchRatio,
+  });
   const [viewPoint, setViewPoint] = useState<
     'tableView' | 'showGraphView' | 'chatInfoView' | 'neighborView' | 'showSchemaView'
   >('tableView');
@@ -1001,6 +1016,52 @@ const Content: React.FC<ContentProps> = ({
               view='ContentView'
               isDisabled={false}
             />
+            <div className='chatbot-settings' style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <label style={{ display: 'flex', flexDirection: 'column', fontSize: '0.9em' }}>
+                Score Threshold
+                <input
+                  type='number'
+                  step='0.01'
+                  min='0'
+                  max='1'
+                  value={scoreThreshold}
+                  onChange={(e) => setScoreThreshold(Number(e.target.value))}
+                  style={{ width: '70px' }}
+                />
+              </label>
+              <label style={{ display: 'flex', flexDirection: 'column', fontSize: '0.9em' }}>
+                Embedding Filter Threshold
+                <input
+                  type='number'
+                  step='0.01'
+                  min='0'
+                  max='1'
+                  value={embeddingFilterThreshold}
+                  onChange={(e) => setEmbeddingFilterThreshold(Number(e.target.value))}
+                  style={{ width: '70px' }}
+                />
+              </label>
+              <label style={{ display: 'flex', flexDirection: 'column', fontSize: '0.9em' }}>
+                Top K
+                <input
+                  type='number'
+                  min='1'
+                  value={searchK}
+                  onChange={(e) => setSearchK(Number(e.target.value))}
+                  style={{ width: '60px' }}
+                />
+              </label>
+              <label style={{ display: 'flex', flexDirection: 'column', fontSize: '0.9em' }}>
+                Effective Search Ratio
+                <input
+                  type='number'
+                  min='1'
+                  value={effectiveSearchRatio}
+                  onChange={(e) => setEffectiveSearchRatio(Number(e.target.value))}
+                  style={{ width: '60px' }}
+                />
+              </label>
+            </div>
           </div>
           <Flex flexDirection='row' gap='4' className='self-end mb-2.5' flexWrap='wrap'>
             <SpotlightTarget id='generategraphbtn'>
