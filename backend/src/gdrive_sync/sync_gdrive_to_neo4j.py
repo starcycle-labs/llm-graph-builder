@@ -68,6 +68,7 @@ def check_available_databases():
             'uri': os.getenv('NEO4J_URI'),
             'userName': os.getenv('NEO4J_USERNAME'),
             'password': os.getenv('NEO4J_PASSWORD'),
+            'database': 'neo4j',  # Explicitly use system database
             'email': ''
         }
         
@@ -95,7 +96,7 @@ def create_database(database_name):
             'uri': os.getenv('NEO4J_URI'),
             'userName': os.getenv('NEO4J_USERNAME'),
             'password': os.getenv('NEO4J_PASSWORD'),
-            'database': database_name,
+            'database': database_name,  # Pass the target database name
             'email': ''
         }
         
@@ -125,7 +126,7 @@ def delete_database(database_name):
             'uri': os.getenv('NEO4J_URI'),
             'userName': os.getenv('NEO4J_USERNAME'),
             'password': os.getenv('NEO4J_PASSWORD'),
-            'database': database_name,
+            'database': database_name,  # Pass the target database name
             'email': ''
         }
         
@@ -383,6 +384,9 @@ def process_folder_direct(folder_id, folder_name, service):
                 logging.info(f"Database {database_name} exists, attempting to delete")
                 delete_database(database_name)
                 
+                # Wait for deletion to complete
+                time.sleep(2)
+                
                 # Verify deletion
                 databases = check_available_databases()
                 if database_name in databases:
@@ -395,6 +399,9 @@ def process_folder_direct(folder_id, folder_name, service):
         try:
             logging.info(f"Creating new database: {database_name}")
             create_database(database_name)
+            
+            # Wait for creation to complete
+            time.sleep(2)
             
             # Verify creation
             databases = check_available_databases()
@@ -477,7 +484,7 @@ def get_folder_ids_from_csv(csv_path=f'.logs/folder_list_{datetime.now().strftim
 if __name__ == "__main__":
     try:
         # Get folder IDs from CSV
-        folder_ids = get_folder_ids_from_csv()
+        folder_ids = get_folder_ids_from_csv('.logs/folder_list_2025-05-09.csv')
 
         
         process_folders_direct(folder_ids)
